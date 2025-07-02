@@ -1,0 +1,438 @@
+<!DOCTYPE html><html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bingo X - Mining Token Edition</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fugaz+One&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Fugaz One', cursive;
+      background: linear-gradient(to bottom, #111927, #2a2f45);
+      color: #f8f8f8;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      text-align: center;
+      padding: 20px;
+      background-color: #222a3b;
+      margin: 0;
+      font-size: 40px;
+      color: #00ffe0;
+      box-shadow: 0 4px 10px rgba(0, 255, 255, 0.2);
+    }
+    #container {
+      max-width: 960px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #1e2433;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 5px;
+    }
+    .cell {
+      position: relative;
+      width: 100%;
+      padding-top: 100%;
+      background: #333b50;
+      border: 2px solid #555;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 36px;
+      font-weight: bold;
+      color: #eee;
+    }
+    .cell::after {
+      content: attr(data-symbol);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .highlight {
+      border: 4px solid #00ffe0;
+    }
+    /* Rapi grid 4x4 untuk simbol taruhan */
+    #symbol-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      justify-items: center;
+      margin: 0 auto 20px;
+      max-width: 320px;
+    }
+    .symbol-option {
+      width: 70px;
+      height: 70px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 32px;
+      font-weight: bold;
+      border-radius: 12px;
+      background: #2a2f45;
+      color: #eee;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+    .symbol-option:hover {
+      transform: scale(1.1);
+      background-color: #444b65;
+    }
+    .symbol-option.selected {
+      background: #00ffe0;
+      color: #000;
+      box-shadow: 0 0 10px #00ffe0;
+    }
+    #popup {
+      display: none;
+      position: fixed;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #00ffe0;
+      color: #000;
+      font-size: 32px;
+      padding: 20px 40px;
+      border-radius: 12px;
+      z-index: 999;
+      box-shadow: 0 0 30px #00ffe0;
+    }
+    #question-box, #mining-box {
+      background: #2c3e50;
+      padding: 15px;
+      border-radius: 10px;
+      display: none;
+    }
+    #
+     {
+      background: #263343;
+      border-radius: 10px;
+      padding: 10px;
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+    .history-item {
+      padding: 5px;
+      border-bottom: 1px solid #444;
+    }
+    button {
+      font-family: 'Fugaz One', cursive;
+      padding: 8px 18px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+      background-color: #00ffe0;
+      color: #000;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #00d8c7;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bingo X - Mining Token Edition</h1>
+  <div id="container">
+    <div class="section">
+      <p><strong>Token:</strong> <span id="token-count">10</span> | <strong>Menang:</strong> <span id="win-count">0</span> | <strong>Kalah:</strong> <span id="lose-count">0</span></p>
+    </div>
+    <div class="section">
+      <label for="bet-amount">Masukkan jumlah token taruhan:</label>
+      <input type="number" id="bet-amount" min="1">
+      <button onclick="confirmBet()" id="confirm-button">Konfirmasi Token</button>
+    </div>
+    <!-- Pilihan simbol taruhan 4x4 yang lebih rapi -->
+    <div id="symbol-grid" class="section"></div>
+    <button onclick="rollGame()" id="roll-button" style="display:none">Jalankan</button>
+    <div id="grid" class="section"></div>
+    <div id="popup"></div><div id="question-box" class="section">
+  <p id="question-text"></p>
+  <input type="number" id="answer">
+  <button onclick="checkAnswer()">Jawab</button>
+</div>
+
+<div class="section">
+  <h3>Mining Token:</h3>
+  <button onclick="startMining()">Mulai Mining</button>
+  <div id="mining-box">
+    <p id="mining-question"></p>
+    <input type="number" id="mining-answer">
+    <button onclick="checkMiningAnswer()">Jawab</button>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Riwayat Permainan:</h3>
+  <div id="history"></div>
+</div>
+<div class="section">
+  <button onclick="resetGame()">🔁 Reset Game</button>
+</div>
+
+  </div>
+  <script>
+    const symbols = ['\u25B2', '\u25A0', '\u2716', '\u2B24'];
+    const colors = ['red', 'green', 'black', 'yellow'];
+    let grid = [], selectedSymbol = null, selectedColor = null;
+    let tokens = 10, bet = 0, isRolling = false;
+    let totalWins = 0, totalLosses = 0, gameHistory = [];
+    const patternQueue = generatePatternQueue();
+    let miningActive = false, miningQuestion = null;const questions = Array.from({ length: 50 }, () => {
+  const type = Math.floor(Math.random() * 4);
+  let q = '', a = 0;
+
+  switch (type) {
+    case 0: {
+      const aCoef = Math.floor(Math.random() * 4 + 2);
+      const b = Math.floor(Math.random() * 5 + 1);
+      const x = Math.floor(Math.random() * 10 + 1);
+      const result = aCoef * (x + b);
+      q = `${aCoef}(x + ${b}) = ${result}. Berapa x?`;
+      a = x;
+      break;
+    }
+    case 1: {
+      let aCoef;
+      do {
+        aCoef = Math.floor(Math.random() * 7 - 3);
+      } while (aCoef === 0);
+      const x = Math.floor(Math.random() * 10 + 1);
+      const b = Math.floor(Math.random() * 10);
+      const result = aCoef * x + b;
+      q = `${aCoef}x + ${b} = ${result}. Berapa x?`;
+      a = x;
+      break;
+    }
+    case 2: {
+      const aCoef = Math.floor(Math.random() * 3 + 2);
+      const b = Math.floor(Math.random() * 5 + 1);
+      const c = Math.floor(Math.random() * 5);
+      const x = Math.floor(Math.random() * 10 + 1);
+      const result = aCoef * (x - b) + c;
+      q = `${aCoef}(x - ${b}) + ${c} = ${result}. Berapa x?`;
+      a = x;
+      break;
+    }
+    case 3: {
+      const b = Math.floor(Math.random() * 4 + 2);
+      const c = Math.floor(Math.random() * 6 + 2);
+      const aOffset = Math.floor(Math.random() * 5);
+      const x = c * b - aOffset;
+      q = `(x + ${aOffset}) / ${b} = ${c}. Berapa x?`;
+      a = x;
+      break;
+    }
+  }
+  return { q, a };
+});
+let currentQuestion;
+
+function generatePatternQueue() {
+  let queue = [];
+  while (queue.length < 500) {
+    queue.push(...Array(Math.floor(Math.random()*2)+2).fill(true));
+    queue.push(...Array(Math.floor(Math.random()*2)+1).fill(false));
+  }
+  return queue;
+}
+let loseStreak = 0;
+function nextOutcome() {
+  if (loseStreak >= 2) {
+    loseStreak = 0;
+    return true;
+  }
+  const outcome = patternQueue.shift();
+  if (!outcome) {
+    loseStreak++;
+  } else {
+    loseStreak = 0;
+  }
+  return outcome;
+}
+function updateTokenDisplay() {
+  document.getElementById('token-count').innerText = tokens;
+  document.getElementById('win-count').innerText = totalWins;
+  document.getElementById('lose-count').innerText = totalLosses;
+  localStorage.setItem('bingoData', JSON.stringify({tokens, totalWins, totalLosses, gameHistory}));
+}
+function loadData() {
+  const saved = JSON.parse(localStorage.getItem('bingoData')) || {};
+  tokens = saved.tokens || 10;
+  totalWins = saved.totalWins || 0;
+  totalLosses = saved.totalLosses || 0;
+  gameHistory = saved.gameHistory || [];
+}
+function renderHistory() {
+  const div = document.getElementById('history');
+  div.innerHTML = gameHistory.map(h => `<div class='history-item'>${h.symbol}-${h.color} → <strong>${h.result}</strong></div>`).join('');
+}
+function createGrid() {
+  const gridEl = document.getElementById('grid');
+  gridEl.innerHTML = '';
+  grid = [];
+  for (let i = 0; i < 64; i++) {
+    const shape = symbols[Math.floor(Math.random() * symbols.length)];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.setAttribute('data-symbol', shape);
+    cell.style.color = color;
+    grid.push({ shape, color, cell });
+    gridEl.appendChild(cell);
+  }
+}
+function createSymbolOptions() {
+  const container = document.getElementById('symbol-grid');
+  container.innerHTML = '';
+  symbols.forEach(shape => colors.forEach(color => {
+    const div = document.createElement('div');
+    div.className = 'symbol-option';
+    div.innerText = shape;
+    div.style.color = color;
+    div.onclick = () => {
+      if (bet <= 0) return alert('Konfirmasi token dulu');
+      document.querySelectorAll('.symbol-option').forEach(d => d.classList.remove('selected'));
+      div.classList.add('selected');
+      selectedSymbol = shape;
+      selectedColor = color;
+    };
+    container.appendChild(div);
+  }));
+}
+function confirmBet() {
+  const val = parseInt(document.getElementById('bet-amount').value);
+  if (isNaN(val) || val < 1 || val > tokens) return alert('Jumlah token tidak valid');
+  bet = val;
+  tokens -= bet;
+  updateTokenDisplay();
+  document.getElementById('confirm-button').disabled = true;
+  document.getElementById('bet-amount').disabled = true;
+  document.getElementById('roll-button').style.display = 'inline-block';
+}
+function rollGame() {
+  if (!selectedSymbol || !selectedColor || isRolling) return alert('Pilih simbol dulu.');
+  isRolling = true;
+  grid.forEach(g => g.cell.classList.remove('highlight'));
+  const match = grid.map((g, i) => g.shape === selectedSymbol && g.color === selectedColor ? i : -1).filter(i => i >= 0);
+  const nonMatch = grid.map((g, i) => g.shape !== selectedSymbol || g.color !== selectedColor ? i : -1).filter(i => i >= 0);
+  const forcedWin = nextOutcome();
+  if (forcedWin && match.length === 0) {
+  do {
+  createGrid(); // Buat grid ulang sampai simbol muncul
+  match = grid.map((g, i) => g.shape === selectedSymbol && g.color === selectedColor ? i : -1).filter(i => i >= 0);
+  } while (match.length === 0);
+  }
+  let idx = forcedWin && match.length ? match[Math.floor(Math.random() * match.length)] : nonMatch[Math.floor(Math.random() * nonMatch.length)];
+  let steps = 100;
+  function animate() {
+    grid.forEach(g => g.cell.classList.remove('highlight'));
+    grid[idx].cell.classList.add('highlight');
+    if (--steps <= 0) {
+      const g = grid[idx];
+      const win = g.shape === selectedSymbol && g.color === selectedColor;
+      gameHistory.unshift({symbol: g.shape, color: g.color, result: win ? 'MENANG' : 'KALAH'});
+      if (gameHistory.length > 20) gameHistory.pop();
+      if (win) {
+        tokens += bet * 5;
+        totalWins++;
+        showPopup('MENANG! +'+ (bet * 5) + ' token');
+      } else {
+        totalLosses++;
+        showPopup('KALAH');
+      }
+      updateTokenDisplay();
+      renderHistory();
+      document.getElementById('confirm-button').disabled = false;
+      document.getElementById('bet-amount').disabled = false;
+      document.getElementById('roll-button').style.display = 'none';
+      isRolling = false;
+    } else {
+      idx = (idx + Math.floor(Math.random() * 5) + 1) % 64;
+      setTimeout(animate, 80);
+    }
+  }
+  animate();
+}
+function showPopup(msg) {
+  const p = document.getElementById('popup');
+  p.innerText = msg;
+  p.style.display = 'block';
+  setTimeout(() => p.style.display = 'none', 2000);
+}
+function showQuestionPrompt() {
+  if (tokens > 0) return alert('Token masih cukup.');
+  currentQuestion = questions[Math.floor(Math.random() * questions.length)];
+  document.getElementById('question-box').style.display = 'block';
+  document.getElementById('question-text').innerText = currentQuestion.q;
+  document.getElementById('answer').value = '';
+}
+function checkAnswer() {
+  const userAns = parseInt(document.getElementById('answer').value);
+  if (userAns === currentQuestion.a) {
+    tokens += 5;
+    alert('Benar! Dapat 5 token.');
+    document.getElementById('question-box').style.display = 'none';
+    updateTokenDisplay();
+  } else alert('Salah!');
+}
+function startMining() {
+  if (miningActive) return;
+  miningQuestion = questions[Math.floor(Math.random() * questions.length)];
+  document.getElementById('mining-box').style.display = 'block';
+  document.getElementById('mining-question').innerText = miningQuestion.q;
+  document.getElementById('mining-answer').value = '';
+  miningActive = true;
+}
+function checkMiningAnswer() {
+  const userAns = parseInt(document.getElementById('mining-answer').value);
+  if (userAns === miningQuestion.a) {
+    tokens += 3;
+    alert('Benar! Tambah 3 token dari mining.');
+    document.getElementById('mining-box').style.display = 'none';
+    miningActive = false;
+    updateTokenDisplay();
+  } else {
+    alert('Salah.');
+  }
+}
+function resetGame() {
+  if (confirm("Yakin ingin mengulang permainan? Semua data akan dihapus.")) {
+    localStorage.removeItem('bingoData');
+    tokens = 10;
+    bet = 0;
+    totalWins = 0;
+    totalLosses = 0;
+    gameHistory = [];
+    document.getElementById('bet-amount').value = '';
+    document.getElementById('confirm-button').disabled = false;
+    document.getElementById('bet-amount').disabled = false;
+    document.getElementById('roll-button').style.display = 'none';
+    updateTokenDisplay();
+    renderHistory();
+    createGrid();
+    createSymbolOptions();
+    alert("Permainan telah di-reset!");
+  }
+}
+window.onload = () => {
+  loadData();
+  updateTokenDisplay();
+  createGrid();
+  createSymbolOptions();
+  renderHistory();
+}
+
+  </script>
+</body>
+</html>
