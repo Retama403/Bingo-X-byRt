@@ -144,20 +144,7 @@
 <body>
   <h1>Bingo X - Mining Token Edition</h1>
   <div id="container">
-    
-<div class="section" style="text-align: center;">
-  <button onclick="playMusic()">▶️ Play Music</button>
-  <div id="music-container" style="margin-top:10px; display: none;">
-    <iframe id="music-frame" width="300" height="180"
-      src=""
-      frameborder="0"
-      allow="autoplay"
-      allowfullscreen>
-    </iframe>
-  </div>
-</div>
-
-<div class="section">
+    <div class="section">
       <p><strong>Token:</strong> <span id="token-count">10</span> | <strong>Menang:</strong> <span id="win-count">0</span> | <strong>Kalah:</strong> <span id="lose-count">0</span></p>
     </div>
     <div class="section">
@@ -192,8 +179,6 @@
 <div class="section">
   <button onclick="resetGame()">🔁 Reset Game</button>
 </div>
-
-
 
   </div>
   <script>
@@ -440,14 +425,6 @@ function resetGame() {
     alert("Permainan telah di-reset!");
   }
 }
-
-function playMusic() {
-  const frame = document.getElementById("music-frame");
-  const container = document.getElementById("music-container");
-  frame.src = "https://www.youtube.com/embed/2Xn4dFgAAmg?rel=0&autoplay=1&mute=0&controls=1";
-  container.style.display = "block";
-}
-
 window.onload = () => {
   loadData();
   updateTokenDisplay();
@@ -457,5 +434,13 @@ window.onload = () => {
 }
 
   </script>
+
+<iframe id="autoplay-music" width="0" height="0" style="display:none;"
+  src="https://www.youtube.com/embed/2Xn4dFgAAmg?rel=0&autoplay=1&mute=0"
+  frameborder="0"
+  allow="autoplay"
+  allowfullscreen>
+</iframe>
+
 </body>
 </html>
